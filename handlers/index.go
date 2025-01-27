@@ -208,12 +208,12 @@ func buildIndexPageData() (*models.IndexPageData, time.Duration) {
 			Active:  uint64(currentEpoch) >= *specs.ElectraForkEpoch,
 		})
 	}
-	if specs.Eip7594ForkEpoch != nil && *specs.Eip7594ForkEpoch < uint64(18446744073709551615) {
+	if specs.FuluForkEpoch != nil && *specs.FuluForkEpoch < uint64(18446744073709551615) {
 		pageData.NetworkForks = append(pageData.NetworkForks, &models.IndexPageDataForks{
-			Name:    "eip7594",
-			Epoch:   *specs.Eip7594ForkEpoch,
-			Version: specs.Eip7594ForkVersion[:],
-			Active:  uint64(currentEpoch) >= *specs.Eip7594ForkEpoch,
+			Name:    "Fulu",
+			Epoch:   *specs.FuluForkEpoch,
+			Version: specs.FuluForkVersion[:],
+			Active:  uint64(currentEpoch) >= *specs.FuluForkEpoch,
 		})
 	}
 
