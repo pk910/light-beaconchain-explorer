@@ -107,6 +107,7 @@ func (bc *BeaconClient) Initialize(ctx context.Context) error {
 		http.WithTimeout(10 * time.Minute),
 		http.WithLogLevel(zerolog.Disabled),
 		http.WithCustomSpecSupport(true),
+		http.WithEnforceJSON(true),
 	}
 
 	// set extra endpoint headers
