@@ -13,6 +13,9 @@ import (
 
 	"github.com/ethpandaops/dora/cache"
 	"github.com/ethpandaops/dora/utils"
+
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/sirupsen/logrus"
 	"github.com/timandy/routine"
 )
@@ -25,6 +28,10 @@ type FrontendCacheService struct {
 	processingDict       map[string]*FrontendCacheProcessingPage
 	callStackMutex       sync.RWMutex
 	callStackBuffer      []byte
+
+	pageCallCount    *prometheus.CounterVec
+	pageCallDuration *prometheus.HistogramVec
+	pageCallCacheHit *prometheus.CounterVec
 }
 
 type FrontendCacheProcessingPage struct {
@@ -72,18 +79,40 @@ func StartFrontendCache() error {
 		tieredCache:     tieredCache,
 		processingDict:  make(map[string]*FrontendCacheProcessingPage),
 		callStackBuffer: make([]byte, 1024*1024*5),
+
+		pageCallCount: promauto.NewCounterVec(prometheus.CounterOpts{
+			Name: "dora_frontend_page_call_count",
+			Help: "Number of page calls",
+		}, []string{"page"}),
+		pageCallDuration: promauto.NewHistogramVec(prometheus.HistogramOpts{
+			Name:    "dora_frontend_page_call_duration",
+			Help:    "Processing time for page calls",
+			Buckets: []float64{0, 25, 50, 75, 100, 250, 500, 750, 1000, 2500, 5000, 10000, 20000, 30000, 60000, 120000},
+		}, []string{"page"}),
+		pageCallCacheHit: promauto.NewCounterVec(prometheus.CounterOpts{
+			Name: "dora_frontend_page_call_cache_hit",
+			Help: "Number of page calls that were served from cache",
+		}, []string{"page"}),
 	}
 	return nil
 }
 
 func (fc *FrontendCacheService) ProcessCachedPage(pageKey string, caching bool, returnValue interface{}, buildFn PageDataHandlerFn) (interface{}, error) {
 	//fmt.Printf("page call %v (goid: %v)\n", pageKey, utils.Goid())
+	pageType := pageKey
+	if strings.Contains(pageKey, ":") {
+		pageType = strings.Split(pageKey, ":")[0]
+	}
+
+	fc.pageCallCount.WithLabelValues(pageType).Inc()
 
 	fc.processingMutex.Lock()
 	processingPage := fc.processingDict[pageKey]
 	if processingPage != nil {
 		fc.processingMutex.Unlock()
 		logrus.Debugf("page already processing: %v", pageKey)
+
+		fc.pageCallCacheHit.WithLabelValues(pageType).Inc()
 
 		processingPage.modelMutex.RLock()
 		defer processingPage.modelMutex.RUnlock()
@@ -98,10 +127,15 @@ func (fc *FrontendCacheService) ProcessCachedPage(pageKey string, caching bool, 
 	defer fc.completePageLoad(pageKey, processingPage)
 	fc.processingMutex.Unlock()
 
+	startTime := time.Now()
 	var returnError error
 	returnValue, returnError = fc.processPageCall(pageKey, caching, returnValue, buildFn, processingPage)
 	processingPage.pageModel = returnValue
 	processingPage.pageError = returnError
+
+	duration := time.Since(startTime)
+	fc.pageCallDuration.WithLabelValues(pageType).Observe(float64(duration.Milliseconds()))
+
 	return returnValue, returnError
 }
 

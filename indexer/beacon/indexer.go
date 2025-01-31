@@ -29,6 +29,7 @@ type Indexer struct {
 	consensusPool *consensus.Pool
 	dynSsz        *dynssz.DynSsz
 	synchronizer  *synchronizer
+	metrics       *beaconMetrics
 
 	// configuration
 	disableSync           bool
@@ -100,6 +101,7 @@ func NewIndexer(logger logrus.FieldLogger, consensusPool *consensus.Pool) *Index
 		backfillCompleteChan: make(chan bool),
 	}
 
+	indexer.metrics = indexer.registerMetrics()
 	indexer.blockCache = newBlockCache(indexer)
 	indexer.epochCache = newEpochCache(indexer)
 	indexer.forkCache = newForkCache(indexer)

@@ -15,6 +15,7 @@ import (
 
 	"github.com/ethpandaops/dora/db"
 	"github.com/ethpandaops/dora/handlers"
+	"github.com/ethpandaops/dora/metrics"
 	"github.com/ethpandaops/dora/services"
 	"github.com/ethpandaops/dora/static"
 	"github.com/ethpandaops/dora/types"
@@ -63,6 +64,13 @@ func main() {
 		err = services.StartFrontendCache()
 		if err != nil {
 			logger.Fatalf("error starting frontend cache service: %v", err)
+		}
+	}
+
+	if cfg.Metrics.Enabled && !cfg.Metrics.Public {
+		err = metrics.StartMetricsServer(logger.WithField("module", "metrics"), cfg.Metrics.Host, cfg.Metrics.Port)
+		if err != nil {
+			logger.Fatalf("error starting metrics server: %v", err)
 		}
 	}
 
@@ -176,6 +184,11 @@ func startFrontend(webserver *http.Server) {
 		// add pprof handler
 		router.PathPrefix("/debug/pprof/").Handler(http.DefaultServeMux)
 		router.HandleFunc("/debug/cache", handlers.DebugCache).Methods("GET")
+		router.Handle("/debug/metrics", metrics.GetMetricsHandler())
+	}
+
+	if utils.Config.Metrics.Enabled && utils.Config.Metrics.Public {
+		router.Handle("/metrics", metrics.GetMetricsHandler())
 	}
 
 	if utils.Config.Frontend.Debug {

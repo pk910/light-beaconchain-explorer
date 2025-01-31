@@ -43,6 +43,7 @@ require (
 
 require (
 	github.com/ipfs/go-cid v0.4.1 // indirect
+	github.com/klauspost/compress v1.17.9 // indirect
 	github.com/libp2p/go-buffer-pool v0.1.0 // indirect
 	github.com/minio/highwayhash v1.0.2 // indirect
 	github.com/mr-tron/base58 v1.2.0 // indirect
@@ -116,7 +117,7 @@ require (
 	github.com/mmcloughlin/addchain v0.4.0 // indirect
 	github.com/ncruces/go-strftime v0.1.9 // indirect
 	github.com/pkg/errors v0.9.1
-	github.com/prometheus/client_golang v1.20.0 // indirect
+	github.com/prometheus/client_golang v1.20.5 // indirect
 	github.com/prometheus/client_model v0.6.1 // indirect
 	github.com/prometheus/common v0.55.0 // indirect
 	github.com/prometheus/procfs v0.15.1 // indirect

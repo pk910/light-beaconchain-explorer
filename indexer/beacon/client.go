@@ -127,6 +127,10 @@ func (c *Client) emitBlockLogEntry(slot phase0.Slot, root phase0.Root, source st
 
 	if isNew {
 		c.logger.Infof("received block %v:%v [0x%x] %v %v fork: %v", chainState.EpochOfSlot(slot), slot, root[:], source, processingTimesStr, forkId)
+
+		c.indexer.metrics.blockLoadDuration.Observe(float64(processingTimes[0].Milliseconds()))
+		c.indexer.metrics.blockProcessDuration.Observe(float64(processingTimes[1].Milliseconds()))
+		c.indexer.metrics.blockStoreDuration.Observe(float64(processingTimes[2].Milliseconds()))
 	} else {
 		c.logger.Debugf("received known block %v:%v [0x%x] %v %v fork: %v", chainState.EpochOfSlot(slot), slot, root[:], source, processingTimesStr, forkId)
 	}

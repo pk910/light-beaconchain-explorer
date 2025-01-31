@@ -15,18 +15,14 @@ import (
 
 // forkCache is a struct that represents the fork cache in the indexer.
 type forkCache struct {
-	indexer            *Indexer
-	cacheMutex         sync.RWMutex
-	forkMap            map[ForkKey]*Fork
-	finalizedForkId    ForkKey
-	lastForkId         ForkKey
-	parentIdCache      *lru.Cache[ForkKey, ForkKey]
-	parentIdCacheHit   uint64
-	parentIdCacheMiss  uint64
-	parentIdsCache     *lru.Cache[ForkKey, []ForkKey]
-	parentIdsCacheHit  uint64
-	parentIdsCacheMiss uint64
-	forkProcessLock    sync.Mutex
+	indexer         *Indexer
+	cacheMutex      sync.RWMutex
+	forkMap         map[ForkKey]*Fork
+	finalizedForkId ForkKey
+	lastForkId      ForkKey
+	parentIdCache   *lru.Cache[ForkKey, ForkKey]
+	parentIdsCache  *lru.Cache[ForkKey, []ForkKey]
+	forkProcessLock sync.Mutex
 }
 
 // newForkCache creates a new instance of the forkCache struct.
@@ -126,7 +122,7 @@ func (cache *forkCache) removeFork(forkId ForkKey) {
 func (cache *forkCache) getParentForkIds(forkId ForkKey) []ForkKey {
 	parentForks, isCached := cache.parentIdsCache.Get(forkId)
 	if isCached {
-		cache.parentIdsCacheHit++
+		cache.indexer.metrics.forkCacheParentIdsCacheHit.Inc()
 		return parentForks
 	}
 
@@ -135,25 +131,25 @@ func (cache *forkCache) getParentForkIds(forkId ForkKey) []ForkKey {
 
 	for parentForkId > 1 {
 		if cachedParent, isCached := cache.parentIdCache.Get(parentForkId); isCached {
-			cache.parentIdCacheHit++
+			cache.indexer.metrics.forkCacheParentIdCacheHit.Inc()
 			parentForkId = cachedParent
 		} else if parentFork := cache.getForkById(parentForkId); parentFork != nil {
 			parentForkId = parentFork.parentFork
 		} else if dbFork := db.GetForkById(uint64(parentForkId)); dbFork != nil {
 			cache.parentIdCache.Add(ForkKey(parentForkId), ForkKey(dbFork.ParentFork))
 			parentForkId = ForkKey(dbFork.ParentFork)
-			cache.parentIdCacheMiss++
+			cache.indexer.metrics.forkCacheParentIdCacheMiss.Inc()
 		} else {
 			cache.parentIdCache.Add(ForkKey(parentForkId), ForkKey(0))
 			parentForkId = 0
-			cache.parentIdCacheMiss++
+			cache.indexer.metrics.forkCacheParentIdCacheMiss.Inc()
 		}
 
 		parentForks = append(parentForks, parentForkId)
 	}
 
 	cache.parentIdsCache.Add(forkId, parentForks)
-	cache.parentIdsCacheMiss++
+	cache.indexer.metrics.forkCacheParentIdsCacheMiss.Inc()
 
 	return parentForks
 }

@@ -276,6 +276,11 @@ func (indexer *Indexer) processEpochPruning(pruneEpoch phase0.Epoch) (uint64, ui
 
 	prunedEpochStates := indexer.epochCache.removeUnreferencedEpochStates()
 
+	indexer.metrics.pruningLoadDuration.Observe(float64(t1loading.Milliseconds()))
+	indexer.metrics.pruningProcessDuration.Observe(float64(t1dur.Milliseconds()))
+	indexer.metrics.pruningStoreDuration.Observe(float64(t2dur.Milliseconds()))
+	indexer.metrics.pruningCleanDuration.Observe(float64(time.Since(t2).Milliseconds()))
+
 	// run gc to clean up memory
 	runtime.GC()
 

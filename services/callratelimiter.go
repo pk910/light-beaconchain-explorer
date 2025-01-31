@@ -8,6 +8,9 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ethpandaops/dora/metrics"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 	"golang.org/x/time/rate"
 )
 
@@ -18,6 +21,9 @@ type CallRateLimiter struct {
 
 	mutex    sync.Mutex
 	visitors map[string]*callRateVisitor
+
+	visitorsCount prometheus.Gauge
+	newVisitors   prometheus.Counter
 }
 
 type callRateVisitor struct {
@@ -39,8 +45,24 @@ func StartCallRateLimiter(proxyCount uint, rateLimit uint, burstLimit uint) erro
 		burstLimit: burstLimit,
 
 		visitors: map[string]*callRateVisitor{},
+
+		visitorsCount: promauto.NewGauge(prometheus.GaugeOpts{
+			Name: "dora_call_rate_limiter_visitors_count",
+			Help: "Number of visitors in the call rate limiter",
+		}),
+		newVisitors: promauto.NewCounter(prometheus.CounterOpts{
+			Name: "dora_call_rate_limiter_new_visitors_count",
+			Help: "Number of new visitors in the call rate limiter",
+		}),
 	}
 	go GlobalCallRateLimiter.cleanupVisitors()
+
+	metrics.AddPreCollectFn(func() {
+		GlobalCallRateLimiter.mutex.Lock()
+		defer GlobalCallRateLimiter.mutex.Unlock()
+
+		GlobalCallRateLimiter.visitorsCount.Set(float64(len(GlobalCallRateLimiter.visitors)))
+	})
 
 	return nil
 }
@@ -87,6 +109,8 @@ func (crl *CallRateLimiter) getVisitor(r *http.Request) *callRateVisitor {
 			lastSeen: time.Now(),
 		}
 		crl.visitors[ip] = visitor
+
+		crl.newVisitors.Inc()
 	} else {
 		visitor.lastSeen = time.Now()
 	}

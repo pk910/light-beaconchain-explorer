@@ -19,24 +19,18 @@ type CacheDebugStats struct {
 		BlockSize    uint64
 	}
 	EpochCache struct {
-		StatsMap       CacheDebugMapSize
-		StateMap       CacheDebugMapSize
-		StatsFull      uint64
-		StatsPrecalc   uint64
-		StatsPruned    uint64
-		StateLoaded    uint64
-		VotesCacheLen  uint64
-		VotesCacheHit  uint64
-		VotesCacheMiss uint64
+		StatsMap      CacheDebugMapSize
+		StateMap      CacheDebugMapSize
+		StatsFull     uint64
+		StatsPrecalc  uint64
+		StatsPruned   uint64
+		StateLoaded   uint64
+		VotesCacheLen uint64
 	}
 	ForkCache struct {
-		ForkMap            CacheDebugMapSize
-		ParentIdCacheLen   uint64
-		ParentIdCacheHit   uint64
-		ParentIdCacheMiss  uint64
-		ParentIdsCacheLen  uint64
-		ParentIdsCacheHit  uint64
-		ParentIdsCacheMiss uint64
+		ForkMap           CacheDebugMapSize
+		ParentIdCacheLen  uint64
+		ParentIdsCacheLen uint64
 	}
 	ValidatorCache struct {
 		Validators        uint64
@@ -129,8 +123,6 @@ func (indexer *Indexer) getEpochCacheDebugStats(cacheStats *CacheDebugStats) {
 	}
 
 	cacheStats.EpochCache.VotesCacheLen = uint64(indexer.epochCache.votesCache.Len())
-	cacheStats.EpochCache.VotesCacheHit = indexer.epochCache.votesCacheHit
-	cacheStats.EpochCache.VotesCacheMiss = indexer.epochCache.votesCacheMiss
 }
 
 func (indexer *Indexer) getForkCacheDebugStats(cacheStats *CacheDebugStats) {
@@ -143,12 +135,7 @@ func (indexer *Indexer) getForkCacheDebugStats(cacheStats *CacheDebugStats) {
 	}
 
 	cacheStats.ForkCache.ParentIdCacheLen = uint64(indexer.forkCache.parentIdCache.Len())
-	cacheStats.ForkCache.ParentIdCacheHit = indexer.forkCache.parentIdCacheHit
-	cacheStats.ForkCache.ParentIdCacheMiss = indexer.forkCache.parentIdCacheMiss
-
 	cacheStats.ForkCache.ParentIdsCacheLen = uint64(indexer.forkCache.parentIdsCache.Len())
-	cacheStats.ForkCache.ParentIdsCacheHit = indexer.forkCache.parentIdsCacheHit
-	cacheStats.ForkCache.ParentIdsCacheMiss = indexer.forkCache.parentIdsCacheMiss
 }
 
 func (indexer *Indexer) getValidatorCacheDebugStats(cacheStats *CacheDebugStats) {

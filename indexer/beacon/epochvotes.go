@@ -69,12 +69,12 @@ func (indexer *Indexer) aggregateEpochVotes(epoch phase0.Epoch, chainState *cons
 
 	votesKey := getEpochVotesKey(epoch, targetRoot, blocks[len(blocks)-1].Root, uint8(len(blocks)), votesWithValues, votesWithPrecalc)
 	if cachedVotes, isOk := indexer.epochCache.votesCache.Get(votesKey); isOk {
-		indexer.epochCache.votesCacheHit++
+		indexer.metrics.epochCacheVotesCacheHit.Inc()
 		return cachedVotes
 	}
 
 	votes := indexer.aggregateEpochVotesAndActivity(epoch, chainState, blocks, epochStats)
-	indexer.epochCache.votesCacheMiss++
+	indexer.metrics.epochCacheVotesCacheMiss.Inc()
 
 	return votes
 }
@@ -232,6 +232,8 @@ func (indexer *Indexer) aggregateEpochVotesAndActivity(epoch phase0.Epoch, chain
 
 	indexer.logger.Debugf("aggregated epoch %v votes in %v (blocks: %v) [0x%x]", epoch, time.Since(t1), len(blocks), votesKey[:])
 	indexer.epochCache.votesCache.Add(votesKey, votes)
+
+	indexer.metrics.epochVoteAggregateDuration.Observe(float64(time.Since(t1).Milliseconds()))
 
 	return votes
 }

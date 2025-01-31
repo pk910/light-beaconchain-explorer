@@ -17,6 +17,13 @@ type Config struct {
 		Host string `yaml:"host" envconfig:"FRONTEND_SERVER_HOST"`
 	} `yaml:"server"`
 
+	Metrics struct {
+		Enabled bool   `yaml:"enabled" envconfig:"METRICS_ENABLED"`
+		Public  bool   `yaml:"public" envconfig:"METRICS_PUBLIC"`
+		Port    string `yaml:"port" envconfig:"METRICS_PORT"`
+		Host    string `yaml:"host" envconfig:"METRICS_HOST"`
+	} `yaml:"metrics"`
+
 	Chain struct {
 		DisplayName string `yaml:"displayName" envconfig:"CHAIN_DISPLAY_NAME"`
 

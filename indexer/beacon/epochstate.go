@@ -114,10 +114,14 @@ func (s *epochState) loadState(ctx context.Context, client *Client, cache *epoch
 
 	s.stateRoot = blockHeader.Message.StateRoot
 
+	t1 := time.Now()
 	resState, err := LoadBeaconState(ctx, client, blockHeader.Message.StateRoot)
 	if err != nil {
 		return nil, err
 	}
+
+	client.indexer.metrics.epochStateLoadDuration.Observe(float64(time.Since(t1).Milliseconds()))
+	client.indexer.metrics.epochStateLoadCount.Inc()
 
 	err = s.processState(resState, cache)
 	if err != nil {

@@ -400,8 +400,15 @@ func (indexer *Indexer) finalizeEpoch(epoch phase0.Epoch, justifiedRoot phase0.R
 		indexer.blockCache.removeBlock(block)
 	}
 
+	t3dur := time.Since(t1)
+
+	indexer.metrics.finalizationLoadDuration.Observe(float64(t1loading.Milliseconds()))
+	indexer.metrics.finalizationProcessDuration.Observe(float64(t1dur.Milliseconds()))
+	indexer.metrics.finalizationStoreDuration.Observe(float64(t2dur.Milliseconds()))
+	indexer.metrics.finalizationCleanDuration.Observe(float64(t3dur.Milliseconds()))
+
 	// log summary
-	indexer.logger.Infof("completed epoch %v finalization (process: %v ms, load: %v s, write: %v ms, clean: %v ms)", epoch, t1dur.Milliseconds(), t1loading.Seconds(), t2dur.Milliseconds(), time.Since(t1).Milliseconds())
+	indexer.logger.Infof("completed epoch %v finalization (process: %v ms, load: %v s, write: %v ms, clean: %v ms)", epoch, t1dur.Milliseconds(), t1loading.Seconds(), t2dur.Milliseconds(), t3dur.Milliseconds())
 	indexer.logger.Infof("epoch %v blocks: %v canonical, %v orphaned", epoch, len(canonicalBlocks), len(orphanedBlocks))
 	if epochStatsValues != nil {
 		indexer.logger.Infof("epoch %v stats: %v validators (%v ETH)", epoch, epochStatsValues.ActiveValidators, epochStatsValues.EffectiveBalance/EtherGweiFactor)

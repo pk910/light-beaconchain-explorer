@@ -5,6 +5,9 @@ import (
 	"math/rand/v2"
 	"time"
 
+	"github.com/ethpandaops/dora/metrics"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/sirupsen/logrus"
 )
 
@@ -17,12 +20,16 @@ type Pool struct {
 }
 
 func NewPool(ctx context.Context, logger logrus.FieldLogger) *Pool {
-	return &Pool{
+	pool := &Pool{
 		ctx:        ctx,
 		logger:     logger,
 		clients:    make([]*Client, 0),
 		chainState: newChainState(),
 	}
+
+	pool.registerMetrics()
+
+	return pool
 }
 
 func (pool *Pool) GetChainState() *ChainState {
@@ -91,4 +98,36 @@ func (pool *Pool) AwaitReadyEndpoint(ctx context.Context, clientType ClientType)
 		case <-time.After(1 * time.Second):
 		}
 	}
+}
+
+func (pool *Pool) registerMetrics() {
+	clientCountGauge := promauto.NewGauge(prometheus.GaugeOpts{
+		Name: "dora_el_pool_clients",
+		Help: "Number of execution clients",
+	})
+	onlineCountGauge := promauto.NewGauge(prometheus.GaugeOpts{
+		Name: "dora_el_pool_clients_online",
+		Help: "Number of execution clients online",
+	})
+	syncingCountGauge := promauto.NewGauge(prometheus.GaugeOpts{
+		Name: "dora_el_pool_clients_syncing",
+		Help: "Number of execution clients syncing",
+	})
+
+	metrics.AddPreCollectFn(func() {
+		online := 0
+		syncing := 0
+		for _, client := range pool.clients {
+			if client.isOnline {
+				online++
+			}
+			if client.isSyncing {
+				syncing++
+			}
+		}
+
+		clientCountGauge.Set(float64(len(pool.clients)))
+		onlineCountGauge.Set(float64(online))
+		syncingCountGauge.Set(float64(syncing))
+	})
 }

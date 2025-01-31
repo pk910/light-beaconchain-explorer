@@ -412,6 +412,9 @@ func (es *EpochStats) processState(indexer *Indexer, validatorSet []*phase0.Vali
 		DutiesSSZ:     packedSsz,
 	}
 
+	t1dur := time.Since(t1)
+	t1 = time.Now()
+
 	err = db.RunDBTransaction(func(tx *sqlx.Tx) error {
 		return db.InsertUnfinalizedDuty(dbDuty, tx)
 	})
@@ -419,7 +422,13 @@ func (es *EpochStats) processState(indexer *Indexer, validatorSet []*phase0.Vali
 		indexer.logger.WithError(err).Errorf("failed storing epoch %v stats (%v / %v) to unfinalized duties", es.epoch, es.dependentRoot.String(), es.dependentState.stateRoot.String())
 	}
 
+	t2dur := time.Since(t1)
+
 	es.isInDb = true
+
+	indexer.metrics.epochStatsProcessDuration.Observe(float64(t1dur.Milliseconds()))
+	indexer.metrics.epochStatsStoreDuration.Observe(float64(t2dur.Milliseconds()))
+	indexer.metrics.epochStatsPackedSize.Observe(float64(len(packedSsz)))
 
 	indexer.logger.Infof(
 		"processed epoch %v stats (root: %v / state: %v, validators: %v/%v, %v ms), %v bytes",
@@ -428,7 +437,7 @@ func (es *EpochStats) processState(indexer *Indexer, validatorSet []*phase0.Vali
 		es.dependentState.stateRoot.String(),
 		values.ActiveValidators,
 		len(validatorSet),
-		time.Since(t1).Milliseconds(),
+		(t1dur + t2dur).Milliseconds(),
 		len(packedSsz),
 	)
 

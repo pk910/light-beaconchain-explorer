@@ -41,9 +41,7 @@ type epochCache struct {
 	syncCache      []phase0.ValidatorIndex       // global sync committee cache for reuse if matching
 	precomputeLock sync.Mutex                    // mutex to prevent concurrent precomputing of epoch stats
 
-	votesCache     *lru.Cache[epochVotesKey, *EpochVotes] // cache for epoch vote aggregations
-	votesCacheHit  uint64
-	votesCacheMiss uint64
+	votesCache *lru.Cache[epochVotesKey, *EpochVotes] // cache for epoch vote aggregations
 }
 
 // newEpochCache creates & returns a new instance of epochCache.

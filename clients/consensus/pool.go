@@ -5,7 +5,10 @@ import (
 	"time"
 
 	v1 "github.com/attestantio/go-eth2-client/api/v1"
+	"github.com/ethpandaops/dora/metrics"
 	"github.com/ethpandaops/ethwallclock"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/exp/rand"
 )
@@ -19,12 +22,16 @@ type Pool struct {
 }
 
 func NewPool(ctx context.Context, logger logrus.FieldLogger) *Pool {
-	return &Pool{
+	pool := &Pool{
 		ctx:        ctx,
 		logger:     logger,
 		clients:    make([]*Client, 0),
 		chainState: newChainState(),
 	}
+
+	pool.registerMetrics()
+
+	return pool
 }
 
 func (pool *Pool) SubscribeFinalizedEvent(capacity int) *Subscription[*v1.Finality] {
@@ -96,4 +103,45 @@ func (pool *Pool) AwaitReadyEndpoint(ctx context.Context, clientType ClientType)
 		case <-time.After(1 * time.Second):
 		}
 	}
+}
+
+func (pool *Pool) registerMetrics() {
+	clientCountGauge := promauto.NewGauge(prometheus.GaugeOpts{
+		Name: "dora_cl_pool_clients",
+		Help: "Number of consensus clients",
+	})
+	onlineCountGauge := promauto.NewGauge(prometheus.GaugeOpts{
+		Name: "dora_cl_pool_clients_online",
+		Help: "Number of consensus clients online",
+	})
+	syncingCountGauge := promauto.NewGauge(prometheus.GaugeOpts{
+		Name: "dora_cl_pool_clients_syncing",
+		Help: "Number of consensus clients syncing",
+	})
+	optimisticCountGauge := promauto.NewGauge(prometheus.GaugeOpts{
+		Name: "dora_cl_pool_clients_optimistic",
+		Help: "Number of consensus clients optimistic",
+	})
+
+	metrics.AddPreCollectFn(func() {
+		online := 0
+		syncing := 0
+		optimistic := 0
+		for _, client := range pool.clients {
+			if client.isOnline {
+				online++
+			}
+			if client.isSyncing {
+				syncing++
+			}
+			if client.isOptimistic {
+				optimistic++
+			}
+		}
+
+		clientCountGauge.Set(float64(len(pool.clients)))
+		onlineCountGauge.Set(float64(online))
+		syncingCountGauge.Set(float64(syncing))
+		optimisticCountGauge.Set(float64(optimistic))
+	})
 }
