@@ -12,24 +12,21 @@ type ValidatorsPageData struct {
 	FilterStatus     string                           `json:"filter_status"`
 	FilterStatusOpts []ValidatorsPageDataStatusOption `json:"filter_status_opts"`
 
-	Validators        []*ValidatorsPageDataValidator `json:"validators"`
-	ValidatorCount    uint64                         `json:"validator_count"`
-	FirstValidator    uint64                         `json:"first_validx"`
-	LastValidator     uint64                         `json:"last_validx"`
-	StateFilter       string                         `json:"state_filter"`
-	Sorting           string                         `json:"sorting"`
-	IsDefaultSorting  bool                           `json:"default_sorting"`
-	IsDefaultPage     bool                           `json:"default_page"`
-	TotalPages        uint64                         `json:"total_pages"`
-	PageSize          uint64                         `json:"page_size"`
-	CurrentPageIndex  uint64                         `json:"page_index"`
-	CurrentPageValIdx uint64                         `json:"page_validx"`
-	PrevPageIndex     uint64                         `json:"prev_page_index"`
-	PrevPageValIdx    uint64                         `json:"prev_page_validx"`
-	NextPageIndex     uint64                         `json:"next_page_index"`
-	NextPageValIdx    uint64                         `json:"next_page_validx"`
-	LastPageValIdx    uint64                         `json:"last_page_validx"`
-	FilteredPageLink  string                         `json:"filtered_page_link"`
+	Validators       []*ValidatorsPageDataValidator `json:"validators"`
+	ValidatorCount   uint64                         `json:"validator_count"`
+	FirstValidator   uint64                         `json:"first_validx"`
+	LastValidator    uint64                         `json:"last_validx"`
+	StateFilter      string                         `json:"state_filter"`
+	Sorting          string                         `json:"sorting"`
+	IsDefaultSorting bool                           `json:"default_sorting"`
+	IsDefaultPage    bool                           `json:"default_page"`
+	TotalPages       uint64                         `json:"total_pages"`
+	PageSize         uint64                         `json:"page_size"`
+	CurrentPageIndex uint64                         `json:"page_index"`
+	PrevPageIndex    uint64                         `json:"prev_page_index"`
+	NextPageIndex    uint64                         `json:"next_page_index"`
+	LastPageIndex    uint64                         `json:"last_page_index"`
+	FilteredPageLink string                         `json:"filtered_page_link"`
 }
 
 type ValidatorsPageDataStatusOption struct {

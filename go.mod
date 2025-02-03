@@ -31,6 +31,7 @@ require (
 	github.com/prysmaticlabs/prysm/v5 v5.2.0
 	github.com/rs/zerolog v1.33.0
 	github.com/sirupsen/logrus v1.9.3
+	github.com/syndtr/goleveldb v1.0.1-0.20210819022825-2ae1ddf74ef7
 	github.com/tdewolff/minify v2.3.6+incompatible
 	github.com/timandy/routine v1.1.4
 	github.com/urfave/negroni v1.0.0
@@ -127,7 +128,6 @@ require (
 	github.com/shopspring/decimal v1.4.0 // indirect
 	github.com/spf13/cast v1.7.0 // indirect
 	github.com/supranational/blst v0.3.13 // indirect
-	github.com/syndtr/goleveldb v1.0.1-0.20210819022825-2ae1ddf74ef7 // indirect
 	github.com/tdewolff/parse v2.3.4+incompatible // indirect
 	github.com/tdewolff/test v1.0.9 // indirect
 	github.com/tklauser/go-sysconf v0.3.14 // indirect

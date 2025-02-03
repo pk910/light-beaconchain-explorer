@@ -347,6 +347,8 @@ func (cache *blockCache) removeBlock(block *Block) {
 			}
 		}
 	}
+
+	block.Dispose()
 }
 
 // getEpochBlocks returns the blocks that belong to the specified epoch.

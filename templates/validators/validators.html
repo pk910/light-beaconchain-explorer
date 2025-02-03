@@ -208,20 +208,20 @@
             <div class="col-sm-12 col-md-7 table-paging">
               <div class="d-inline-block px-2">
                 <ul class="pagination">
-                  <li class="first paginate_button page-item {{ if le .PrevPageIndex 1 }}disabled{{ end }}" id="tpg_first">
+                  <li class="first paginate_button page-item {{ if eq .CurrentPageIndex 1 }}disabled{{ end }}" id="tpg_first">
                     <a tab-index="1" aria-controls="tpg_first" class="page-link" href="{{ .FilteredPageLink }}&{{ if not .IsDefaultSorting }}o={{ .Sorting }}&{{ end }}c={{ .PageSize }}">First</a>
                   </li>
-                  <li class="previous paginate_button page-item {{ if eq .PrevPageIndex 0 }}disabled{{ end }}" id="tpg_previous">
-                    <a tab-index="1" aria-controls="tpg_previous" class="page-link" href="{{ .FilteredPageLink }}&{{ if not .IsDefaultSorting }}o={{ .Sorting }}&{{ end }}s={{ .PrevPageValIdx }}&c={{ .PageSize }}"><i class="fas fa-chevron-left"></i></a>
+                  <li class="previous paginate_button page-item {{ if eq .CurrentPageIndex 1 }}disabled{{ end }}" id="tpg_previous">
+                    <a tab-index="1" aria-controls="tpg_previous" class="page-link" href="{{ .FilteredPageLink }}&{{ if not .IsDefaultSorting }}o={{ .Sorting }}&{{ end }}p={{ .PrevPageIndex }}&c={{ .PageSize }}"><i class="fas fa-chevron-left"></i></a>
                   </li>
                   <li class="page-item disabled">
                     <a class="page-link" style="background-color: transparent;">{{ .CurrentPageIndex }} of {{ .TotalPages }}</a>
                   </li>
-                  <li class="next paginate_button page-item {{ if eq .NextPageIndex 0 }}disabled{{ end }}" id="tpg_next">
-                    <a tab-index="1" aria-controls="tpg_next" class="page-link" href="{{ .FilteredPageLink }}&{{ if not .IsDefaultSorting }}o={{ .Sorting }}&{{ end }}s={{ .NextPageValIdx }}&c={{ .PageSize }}"><i class="fas fa-chevron-right"></i></a>
+                  <li class="next paginate_button page-item {{ if ge .CurrentPageIndex .LastPageIndex }}disabled{{ end }}" id="tpg_next">
+                    <a tab-index="1" aria-controls="tpg_next" class="page-link" href="{{ .FilteredPageLink }}&{{ if not .IsDefaultSorting }}o={{ .Sorting }}&{{ end }}p={{ .NextPageIndex }}&c={{ .PageSize }}"><i class="fas fa-chevron-right"></i></a>
                   </li>
-                  <li class="last paginate_button page-item {{ if not (gt .LastPageValIdx .NextPageValIdx) }}disabled{{ end }}" id="tpg_last">
-                    <a tab-index="1" aria-controls="tpg_last" class="page-link" href="{{ .FilteredPageLink }}&{{ if not .IsDefaultSorting }}o={{ .Sorting }}&{{ end }}s={{ .LastPageValIdx }}&c={{ .PageSize }}">Last</a>
+                  <li class="last paginate_button page-item {{ if ge .CurrentPageIndex .LastPageIndex }}disabled{{ end }}" id="tpg_last">
+                    <a tab-index="1" aria-controls="tpg_last" class="page-link" href="{{ .FilteredPageLink }}&{{ if not .IsDefaultSorting }}o={{ .Sorting }}&{{ end }}p={{ .LastPageIndex }}&c={{ .PageSize }}">Last</a>
                   </li>
                 </ul>
               </div>

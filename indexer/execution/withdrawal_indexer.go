@@ -1,7 +1,6 @@
 package execution
 
 import (
-	"bytes"
 	"fmt"
 	"math/big"
 	"time"
@@ -112,7 +111,7 @@ func (wi *WithdrawalIndexer) runWithdrawalIndexerLoop() {
 // processFinalTx is the callback for the contract indexer to process final transactions
 // it parses the transaction and returns the corresponding withdrawal transaction
 func (wi *WithdrawalIndexer) processFinalTx(log *types.Log, tx *types.Transaction, header *types.Header, txFrom common.Address, dequeueBlock uint64) (*dbtypes.WithdrawalRequestTx, error) {
-	requestTx := wi.parseRequestLog(log, nil)
+	requestTx := wi.parseRequestLog(log)
 	if requestTx == nil {
 		return nil, fmt.Errorf("invalid withdrawal log")
 	}
@@ -130,7 +129,7 @@ func (wi *WithdrawalIndexer) processFinalTx(log *types.Log, tx *types.Transactio
 // processRecentTx is the callback for the contract indexer to process recent transactions
 // it parses the transaction and returns the corresponding withdrawal transaction
 func (wi *WithdrawalIndexer) processRecentTx(log *types.Log, tx *types.Transaction, header *types.Header, txFrom common.Address, dequeueBlock uint64, fork *forkWithClients) (*dbtypes.WithdrawalRequestTx, error) {
-	requestTx := wi.parseRequestLog(log, &fork.forkId)
+	requestTx := wi.parseRequestLog(log)
 	if requestTx == nil {
 		return nil, fmt.Errorf("invalid withdrawal log")
 	}
@@ -153,7 +152,7 @@ func (wi *WithdrawalIndexer) processRecentTx(log *types.Log, tx *types.Transacti
 }
 
 // parseRequestLog parses a withdrawal log and returns the corresponding withdrawal transaction
-func (wi *WithdrawalIndexer) parseRequestLog(log *types.Log, forkId *beacon.ForkKey) *dbtypes.WithdrawalRequestTx {
+func (wi *WithdrawalIndexer) parseRequestLog(log *types.Log) *dbtypes.WithdrawalRequestTx {
 	// data layout:
 	// 0-20: sender address (20 bytes)
 	// 20-68: validator pubkey (48 bytes)
@@ -168,15 +167,10 @@ func (wi *WithdrawalIndexer) parseRequestLog(log *types.Log, forkId *beacon.Fork
 	validatorPubkey := log.Data[20:68]
 	amount := big.NewInt(0).SetBytes(log.Data[68:76]).Uint64()
 
-	validatorSet := wi.indexerCtx.beaconIndexer.GetValidatorSet(forkId)
-
 	var validatorIndex *uint64
-	for index, validator := range validatorSet {
-		if validator != nil && bytes.Equal(validator.PublicKey[:], validatorPubkey) {
-			index := uint64(index)
-			validatorIndex = &index
-			break
-		}
+	if index, found := wi.indexerCtx.beaconIndexer.GetValidatorIndexByPubkey(phase0.BLSPubKey(validatorPubkey)); found {
+		indexNum := uint64(index)
+		validatorIndex = &indexNum
 	}
 
 	requestTx := &dbtypes.WithdrawalRequestTx{

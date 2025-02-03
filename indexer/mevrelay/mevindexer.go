@@ -83,11 +83,6 @@ func (mev *MevIndexer) runUpdater() error {
 		return nil
 	}
 
-	validatorSet := mev.beaconIndexer.GetValidatorSet(nil)
-	if validatorSet == nil {
-		return nil
-	}
-
 	if !mev.mevBlockCacheLoaded {
 		// prefill cache
 		_, finalizedEpoch := mev.beaconIndexer.GetBlockCacheState()

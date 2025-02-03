@@ -1,7 +1,6 @@
 package execution
 
 import (
-	"bytes"
 	"fmt"
 	"time"
 
@@ -111,7 +110,7 @@ func (ci *ConsolidationIndexer) runConsolidationIndexerLoop() {
 // processFinalTx is the callback for the contract indexer for finalized transactions
 // it parses the transaction and returns the corresponding consolidation request transaction
 func (ci *ConsolidationIndexer) processFinalTx(log *types.Log, tx *types.Transaction, header *types.Header, txFrom common.Address, dequeueBlock uint64) (*dbtypes.ConsolidationRequestTx, error) {
-	requestTx := ci.parseRequestLog(log, nil)
+	requestTx := ci.parseRequestLog(log)
 	if requestTx == nil {
 		return nil, fmt.Errorf("invalid consolidation log")
 	}
@@ -129,7 +128,7 @@ func (ci *ConsolidationIndexer) processFinalTx(log *types.Log, tx *types.Transac
 // processRecentTx is the callback for the contract indexer for recent transactions
 // it parses the transaction and returns the corresponding consolidation request transaction
 func (ci *ConsolidationIndexer) processRecentTx(log *types.Log, tx *types.Transaction, header *types.Header, txFrom common.Address, dequeueBlock uint64, fork *forkWithClients) (*dbtypes.ConsolidationRequestTx, error) {
-	requestTx := ci.parseRequestLog(log, &fork.forkId)
+	requestTx := ci.parseRequestLog(log)
 	if requestTx == nil {
 		return nil, fmt.Errorf("invalid consolidation log")
 	}
@@ -152,7 +151,7 @@ func (ci *ConsolidationIndexer) processRecentTx(log *types.Log, tx *types.Transa
 }
 
 // parseRequestLog parses a consolidation request log and returns the corresponding consolidation request transaction
-func (ci *ConsolidationIndexer) parseRequestLog(log *types.Log, forkId *beacon.ForkKey) *dbtypes.ConsolidationRequestTx {
+func (ci *ConsolidationIndexer) parseRequestLog(log *types.Log) *dbtypes.ConsolidationRequestTx {
 	// data layout:
 	// 0-20: sender address (20 bytes)
 	// 20-68: source pubkey (48 bytes)
@@ -169,24 +168,15 @@ func (ci *ConsolidationIndexer) parseRequestLog(log *types.Log, forkId *beacon.F
 
 	// get the validator indices for the source and target pubkeys
 	var sourceIndex, targetIndex *uint64
-	for index, validator := range ci.indexerCtx.beaconIndexer.GetValidatorSet(forkId) {
-		if validator == nil {
-			continue
-		}
-		if sourceIndex == nil && bytes.Equal(validator.PublicKey[:], sourcePubkey) {
-			index := uint64(index)
-			sourceIndex = &index
-			if targetIndex != nil {
-				break
-			}
-		}
-		if targetIndex == nil && bytes.Equal(validator.PublicKey[:], targetPubkey) {
-			index := uint64(index)
-			targetIndex = &index
-			if sourceIndex != nil {
-				break
-			}
-		}
+
+	if index, found := ci.indexerCtx.beaconIndexer.GetValidatorIndexByPubkey(phase0.BLSPubKey(sourcePubkey)); found {
+		indexNum := uint64(index)
+		sourceIndex = &indexNum
+	}
+
+	if index, found := ci.indexerCtx.beaconIndexer.GetValidatorIndexByPubkey(phase0.BLSPubKey(targetPubkey)); found {
+		indexNum := uint64(index)
+		targetIndex = &indexNum
 	}
 
 	requestTx := &dbtypes.ConsolidationRequestTx{

@@ -344,20 +344,32 @@ func (es *EpochStats) processState(indexer *Indexer, validatorSet []*phase0.Vali
 		FirstDepositIndex:   es.dependentState.depositIndex,
 	}
 
-	if validatorSet == nil {
-		validatorSet = indexer.validatorCache.getValidatorSetForRoot(es.dependentRoot)
+	if validatorSet != nil {
+		for index, validator := range validatorSet {
+			values.TotalBalance += es.dependentState.validatorBalances[index]
+			if es.epoch >= validator.ActivationEpoch && es.epoch < validator.ExitEpoch {
+				values.ActiveIndices = append(values.ActiveIndices, phase0.ValidatorIndex(index))
+				values.EffectiveBalances = append(values.EffectiveBalances, uint16(validator.EffectiveBalance/EtherGweiFactor))
+				values.EffectiveBalance += validator.EffectiveBalance
+				values.ActiveBalance += es.dependentState.validatorBalances[index]
+			}
+		}
+
+		values.ActiveValidators = uint64(len(values.ActiveIndices))
+	} else {
+		for _, balance := range es.dependentState.validatorBalances {
+			values.TotalBalance += balance
+		}
+
+		for _, validator := range indexer.validatorCache.getActiveValidatorDataForRoot(&es.epoch, es.dependentRoot) {
+			values.ActiveIndices = append(values.ActiveIndices, phase0.ValidatorIndex(validator.Index))
+			values.EffectiveBalances = append(values.EffectiveBalances, uint16(validator.Data.EffectiveBalance()/EtherGweiFactor))
+			values.EffectiveBalance += validator.Data.EffectiveBalance()
+			values.ActiveBalance += es.dependentState.validatorBalances[validator.Index]
+		}
 	}
 
 	// get active validator indices & aggregate balances
-	for index, validator := range validatorSet {
-		values.TotalBalance += es.dependentState.validatorBalances[index]
-		if es.epoch >= validator.ActivationEpoch && es.epoch < validator.ExitEpoch {
-			values.ActiveIndices = append(values.ActiveIndices, phase0.ValidatorIndex(index))
-			values.EffectiveBalances = append(values.EffectiveBalances, uint16(validator.EffectiveBalance/EtherGweiFactor))
-			values.EffectiveBalance += validator.EffectiveBalance
-			values.ActiveBalance += es.dependentState.validatorBalances[index]
-		}
-	}
 
 	values.ActiveValidators = uint64(len(values.ActiveIndices))
 	beaconState := &duties.BeaconState{
@@ -470,6 +482,20 @@ func (es *EpochStats) precomputeFromParentState(indexer *Indexer, parentState *E
 			TotalBalance:        parentStatsValues.TotalBalance,
 			ActiveBalance:       parentStatsValues.ActiveBalance,
 			EffectiveBalance:    parentStatsValues.EffectiveBalance,
+		}
+
+		// update active validators from validator cache
+		validatorSet := indexer.validatorCache.getActiveValidatorDataForRoot(&es.epoch, es.dependentRoot)
+		if len(validatorSet) > 0 {
+			values.ActiveIndices = make([]phase0.ValidatorIndex, 0, len(validatorSet))
+			values.EffectiveBalances = make([]uint16, 0, len(validatorSet))
+			values.ActiveBalance = 0
+
+			for _, validator := range validatorSet {
+				values.ActiveIndices = append(values.ActiveIndices, phase0.ValidatorIndex(validator.Index))
+				values.EffectiveBalances = append(values.EffectiveBalances, validator.Data.EffectiveBalanceEth)
+				values.ActiveBalance += validator.Data.EffectiveBalance()
+			}
 		}
 
 		values.ActiveValidators = uint64(len(values.ActiveIndices))

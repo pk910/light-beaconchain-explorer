@@ -154,7 +154,7 @@ func (indexer *Indexer) aggregateEpochVotesAndActivity(epoch phase0.Epoch, chain
 			slotIndex := chainState.SlotToSlotIndex(attData.Slot)
 			updateActivity := func(validatorIndex phase0.ValidatorIndex) {
 				if processActivity {
-					indexer.validatorCache.updateValidatorActivity(validatorIndex, epoch, attData.Slot, block)
+					indexer.validatorActivity.updateValidatorActivity(validatorIndex, epoch, attData.Slot, block)
 				}
 			}
 

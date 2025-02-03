@@ -135,11 +135,6 @@ func (vn *ValidatorNames) getDefaultValidatorNames() string {
 }
 
 func (vn *ValidatorNames) resolveNames() (bool, error) {
-	validatorSet := vn.beaconIndexer.GetValidatorSet(nil)
-	if validatorSet == nil {
-		return false, fmt.Errorf("validator set not ready")
-	}
-
 	logger_vn.Debugf("resolve validator names")
 
 	newResolvedNames := map[uint64]*validatorNameEntry{}
@@ -152,22 +147,16 @@ func (vn *ValidatorNames) resolveNames() (bool, error) {
 	}
 
 	// resolve names by withdrawal address
-	validatorSetMap := map[phase0.BLSPubKey]uint64{}
-	for vidx, validator := range validatorSet {
-		if validator == nil {
+	for wdAddr, name := range vn.namesByWithdrawal {
+		if name == nil {
 			continue
 		}
 
-		validatorSetMap[validator.PublicKey] = uint64(vidx)
-
-		if validator.WithdrawalCredentials[0] == 0x00 {
-			continue
-		}
-
-		validatorWithdrawalAddr := common.Address(validator.WithdrawalCredentials[12:])
-		name := vn.namesByWithdrawal[validatorWithdrawalAddr]
-		if name != nil {
-			addResolved(uint64(vidx), name)
+		validators, _ := GlobalBeaconService.GetFilteredValidatorSet(&dbtypes.ValidatorFilter{
+			WithdrawalAddress: wdAddr[:],
+		}, false)
+		for _, validator := range validators {
+			addResolved(uint64(validator.Index), name)
 		}
 	}
 
@@ -181,9 +170,9 @@ func (vn *ValidatorNames) resolveNames() (bool, error) {
 				Address: address[:],
 			})
 			for _, deposit := range deposits {
-				validatorIndex, found := validatorSetMap[phase0.BLSPubKey(deposit.PublicKey)]
+				validatorIndex, found := vn.beaconIndexer.GetValidatorIndexByPubkey(phase0.BLSPubKey(deposit.PublicKey))
 				if found {
-					addResolved(validatorIndex, vn.namesByDepositOrigin[address])
+					addResolved(uint64(validatorIndex), vn.namesByDepositOrigin[address])
 				}
 			}
 
@@ -204,9 +193,9 @@ func (vn *ValidatorNames) resolveNames() (bool, error) {
 				TargetAddress: address[:],
 			})
 			for _, deposit := range deposits {
-				validatorIndex, found := validatorSetMap[phase0.BLSPubKey(deposit.PublicKey)]
+				validatorIndex, found := vn.beaconIndexer.GetValidatorIndexByPubkey(phase0.BLSPubKey(deposit.PublicKey))
 				if found {
-					addResolved(validatorIndex, vn.namesByDepositTarget[address])
+					addResolved(uint64(validatorIndex), vn.namesByDepositTarget[address])
 				}
 			}
 

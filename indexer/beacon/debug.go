@@ -173,12 +173,14 @@ func (indexer *Indexer) getValidatorCacheDebugStats(cacheStats *CacheDebugStats)
 
 	cacheStats.ValidatorCache.ValidatorData = uint64(len(validatorsMap))
 
-	for _, recentActivity := range indexer.validatorCache.validatorActivityMap {
+	for _, recentActivity := range indexer.validatorActivity.activityMap {
 		cacheStats.ValidatorCache.ValidatorActivity += uint64(len(recentActivity))
 	}
 
-	cacheStats.ValidatorCache.PubkeyMap = CacheDebugMapSize{
-		Length: len(indexer.validatorCache.pubkeyMap),
-		Size:   mapsize.Size(indexer.validatorCache.pubkeyMap),
+	if indexer.pubkeyCache.pubkeyMap != nil {
+		cacheStats.ValidatorCache.PubkeyMap = CacheDebugMapSize{
+			Length: len(indexer.pubkeyCache.pubkeyMap),
+			Size:   mapsize.Size(indexer.pubkeyCache.pubkeyMap),
+		}
 	}
 }

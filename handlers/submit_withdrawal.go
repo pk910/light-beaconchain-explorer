@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -13,6 +12,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/sirupsen/logrus"
 
+	"github.com/ethpandaops/dora/dbtypes"
 	"github.com/ethpandaops/dora/indexer/execution"
 	"github.com/ethpandaops/dora/services"
 	"github.com/ethpandaops/dora/templates"
@@ -109,17 +109,12 @@ func handleSubmitWithdrawalPageDataAjax(w http.ResponseWriter, r *http.Request) 
 		address := query.Get("address")
 		addressBytes := common.HexToAddress(address)
 
-		validators := services.GlobalBeaconService.GetCachedValidatorSet(true)
+		validators, _ := services.GlobalBeaconService.GetFilteredValidatorSet(&dbtypes.ValidatorFilter{
+			WithdrawalAddress: addressBytes[:],
+		}, true)
+
 		result := []models.SubmitWithdrawalPageDataValidator{}
 		for _, validator := range validators {
-			if validator.Validator.WithdrawalCredentials[0] == 0x00 {
-				continue
-			}
-
-			if !bytes.Equal(validator.Validator.WithdrawalCredentials[12:], addressBytes[:]) {
-				continue
-			}
-
 			var status string
 			if strings.HasPrefix(validator.Status.String(), "pending") {
 				status = "Pending"

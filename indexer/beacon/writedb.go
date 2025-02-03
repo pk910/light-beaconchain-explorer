@@ -719,11 +719,11 @@ func (dbw *dbWriter) buildDbConsolidationRequests(block *Block, orphaned bool, o
 		if overrideForkId != nil {
 			dbConsolidation.ForkId = uint64(*overrideForkId)
 		}
-		if sourceIdx, found := dbw.indexer.validatorCache.getValidatorIndexByPubkey(consolidation.SourcePubkey); found {
+		if sourceIdx, found := dbw.indexer.pubkeyCache.Get(consolidation.SourcePubkey); found {
 			sourceIdx := uint64(sourceIdx)
 			dbConsolidation.SourceIndex = &sourceIdx
 		}
-		if targetIdx, found := dbw.indexer.validatorCache.getValidatorIndexByPubkey(consolidation.TargetPubkey); found {
+		if targetIdx, found := dbw.indexer.pubkeyCache.Get(consolidation.TargetPubkey); found {
 			targetIdx := uint64(targetIdx)
 			dbConsolidation.TargetIndex = &targetIdx
 		}
@@ -783,7 +783,7 @@ func (dbw *dbWriter) buildDbWithdrawalRequests(block *Block, orphaned bool, over
 		if overrideForkId != nil {
 			dbWithdrawalRequest.ForkId = uint64(*overrideForkId)
 		}
-		if validatorIdx, found := dbw.indexer.validatorCache.getValidatorIndexByPubkey(withdrawalRequest.ValidatorPubkey); found {
+		if validatorIdx, found := dbw.indexer.pubkeyCache.Get(withdrawalRequest.ValidatorPubkey); found {
 			validatorIdx := uint64(validatorIdx)
 			dbWithdrawalRequest.ValidatorIndex = &validatorIdx
 		}

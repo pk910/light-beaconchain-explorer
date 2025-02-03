@@ -38,10 +38,12 @@ type Indexer struct {
 	maxParallelStateCalls uint16
 
 	// caches
-	blockCache     *blockCache
-	epochCache     *epochCache
-	forkCache      *forkCache
-	validatorCache *validatorCache
+	blockCache        *blockCache
+	epochCache        *epochCache
+	forkCache         *forkCache
+	pubkeyCache       *pubkeyCache
+	validatorCache    *validatorCache
+	validatorActivity *validatorActivityCache
 
 	// indexer state
 	clients               []*Client
@@ -87,9 +89,8 @@ func NewIndexer(logger logrus.FieldLogger, consensusPool *consensus.Pool) *Index
 
 	// Create the indexer instance.
 	indexer := &Indexer{
-		logger:        logger,
-		consensusPool: consensusPool,
-
+		logger:                logger,
+		consensusPool:         consensusPool,
 		disableSync:           utils.Config.Indexer.DisableSynchronizer,
 		blockCompression:      blockCompression,
 		inMemoryEpochs:        inMemoryEpochs,
@@ -103,7 +104,9 @@ func NewIndexer(logger logrus.FieldLogger, consensusPool *consensus.Pool) *Index
 	indexer.blockCache = newBlockCache(indexer)
 	indexer.epochCache = newEpochCache(indexer)
 	indexer.forkCache = newForkCache(indexer)
+	indexer.pubkeyCache = newPubkeyCache(indexer, utils.Config.Indexer.PubkeyCachePath)
 	indexer.validatorCache = newValidatorCache(indexer)
+	indexer.validatorActivity = newValidatorActivityCache(indexer)
 	indexer.dbWriter = newDbWriter(indexer)
 
 	return indexer
@@ -238,9 +241,17 @@ func (indexer *Indexer) StartIndexer() {
 		indexer.logger.WithError(err).Errorf("failed loading fork state")
 	}
 
+	// restore finalized validator set from db
+	t1 := time.Now()
+	if validatorCount, err := indexer.validatorCache.prepopulateFromDB(); err != nil {
+		indexer.logger.WithError(err).Errorf("failed loading validator set")
+	} else {
+		indexer.logger.Infof("restored %v validators from DB (%.3f sec)", validatorCount, time.Since(t1).Seconds())
+	}
+
 	// restore unfinalized epoch stats from db
 	restoredEpochStats := 0
-	t1 := time.Now()
+	t1 = time.Now()
 	processingLimiter := make(chan bool, 10)
 	processingWaitGroup := sync.WaitGroup{}
 	err = db.StreamUnfinalizedDuties(uint64(finalizedEpoch), func(dbDuty *dbtypes.UnfinalizedDuty) {

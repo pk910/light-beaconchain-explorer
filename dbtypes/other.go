@@ -1,5 +1,7 @@
 package dbtypes
 
+import v1 "github.com/attestantio/go-eth2-client/api/v1"
+
 type AssignedSlot struct {
 	Slot     uint64 `db:"slot"`
 	Proposer uint64 `db:"proposer"`
@@ -147,4 +149,34 @@ type ConsolidationRequestTxFilter struct {
 	MaxTgtIndex      uint64
 	TgtValidatorName string
 	WithOrphaned     uint8
+}
+
+type ValidatorOrder uint8
+
+const (
+	ValidatorOrderIndexAsc ValidatorOrder = iota
+	ValidatorOrderIndexDesc
+	ValidatorOrderPubKeyAsc
+	ValidatorOrderPubKeyDesc
+	ValidatorOrderBalanceAsc
+	ValidatorOrderBalanceDesc
+	ValidatorOrderActivationEpochAsc
+	ValidatorOrderActivationEpochDesc
+	ValidatorOrderExitEpochAsc
+	ValidatorOrderExitEpochDesc
+	ValidatorOrderWithdrawableEpochAsc
+	ValidatorOrderWithdrawableEpochDesc
+)
+
+type ValidatorFilter struct {
+	MinIndex          *uint64
+	MaxIndex          *uint64
+	PubKey            []byte
+	WithdrawalAddress []byte
+	ValidatorName     string
+	Status            []v1.ValidatorState
+
+	OrderBy ValidatorOrder
+	Limit   uint64
+	Offset  uint64
 }

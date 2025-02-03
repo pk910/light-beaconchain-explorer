@@ -264,20 +264,6 @@ func (bs *ChainService) GetValidatorNamesCount() uint64 {
 	return bs.validatorNames.GetValidatorNamesCount()
 }
 
-func (bs *ChainService) GetCachedValidatorSet(withBalance bool) []*v1.Validator {
-	currentEpoch := bs.consensusPool.GetChainState().CurrentEpoch()
-	return bs.beaconIndexer.GetEpochValidatorSet(currentEpoch, nil, withBalance)
-}
-
-func (bs *ChainService) GetValidatorByIndex(index phase0.ValidatorIndex, withBalance bool) *v1.Validator {
-	currentEpoch := bs.consensusPool.GetChainState().CurrentEpoch()
-	return bs.beaconIndexer.GetEpochValidator(index, currentEpoch, nil, withBalance)
-}
-
-func (bs *ChainService) GetValidatorIndexByPubkey(pubkey phase0.BLSPubKey) (phase0.ValidatorIndex, bool) {
-	return bs.beaconIndexer.GetValidatorIndexByPubkey(pubkey)
-}
-
 func (bs *ChainService) GetFinalizedEpoch() (phase0.Epoch, phase0.Root) {
 	chainState := bs.consensusPool.GetChainState()
 	return chainState.GetFinalizedCheckpoint()

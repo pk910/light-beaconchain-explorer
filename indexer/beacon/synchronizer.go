@@ -436,8 +436,8 @@ func (sync *synchronizer) syncEpoch(syncEpoch phase0.Epoch, client *Client, last
 	}
 
 	// cleanup cache (remove blocks from this epoch)
-	for slot := firstSlot; slot <= lastSlot; slot++ {
-		if sync.cachedBlocks[slot] != nil {
+	for slot := range sync.cachedBlocks {
+		if slot <= lastSlot {
 			delete(sync.cachedBlocks, slot)
 		}
 	}
