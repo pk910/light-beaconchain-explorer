@@ -36,6 +36,8 @@ type ChainSpec struct {
 	ElectraForkEpoch                   *uint64           `yaml:"ELECTRA_FORK_EPOCH"`
 	Eip7594ForkVersion                 phase0.Version    `yaml:"EIP7594_FORK_VERSION" check-if-fork:"Eip7594ForkEpoch"`
 	Eip7594ForkEpoch                   *uint64           `yaml:"EIP7594_FORK_EPOCH"`
+	Eip7732ForkVersion                 phase0.Version    `yaml:"EIP7732_FORK_VERSION" check-if-fork:"Eip7732ForkEpoch"`
+	Eip7732ForkEpoch                   *uint64           `yaml:"EIP7732_FORK_EPOCH"`
 	SecondsPerSlot                     time.Duration     `yaml:"SECONDS_PER_SLOT"`
 	SlotsPerEpoch                      uint64            `yaml:"SLOTS_PER_EPOCH"`
 	EpochsPerHistoricalVector          uint64            `yaml:"EPOCHS_PER_HISTORICAL_VECTOR"`
@@ -63,6 +65,11 @@ type ChainSpec struct {
 	NumberOfColumns              *uint64 `yaml:"NUMBER_OF_COLUMNS"                check-if-fork:"Eip7594ForkEpoch"`
 	DataColumnSidecarSubnetCount *uint64 `yaml:"DATA_COLUMN_SIDECAR_SUBNET_COUNT" check-if-fork:"Eip7594ForkEpoch"`
 	CustodyRequirement           *uint64 `yaml:"CUSTODY_REQUIREMENT"              check-if-fork:"Eip7594ForkEpoch"`
+
+	// EIP7732: ePBS
+	PtcSize                uint64            `yaml:"PTC_SIZE" check-if-fork:"Eip7732ForkEpoch"`
+	MaxPayloadAttestations uint64            `yaml:"MAX_PAYLOAD_ATTESTATIONS" check-if-fork:"Eip7732ForkEpoch"`
+	DomainPtcAttester      phase0.DomainType `yaml:"DOMAIN_PTC_ATTESTER" check-if-fork:"Eip7732ForkEpoch"`
 
 	// additional dora specific specs
 	WhiskForkEpoch *uint64

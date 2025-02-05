@@ -42,6 +42,7 @@ require (
 )
 
 require (
+	github.com/emicklei/dot v1.6.4 // indirect
 	github.com/ipfs/go-cid v0.4.1 // indirect
 	github.com/libp2p/go-buffer-pool v0.1.0 // indirect
 	github.com/minio/highwayhash v1.0.2 // indirect
@@ -83,8 +84,8 @@ require (
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/ethereum/c-kzg-4844 v1.0.2 // indirect
 	github.com/ethereum/go-verkle v0.2.2 // indirect
-	github.com/fatih/color v1.17.0 // indirect
-	github.com/ferranbt/fastssz v0.1.3 // indirect
+	github.com/fatih/color v1.18.0 // indirect
+	github.com/ferranbt/fastssz v0.1.4 // indirect
 	github.com/go-logr/logr v1.4.2 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-ole/go-ole v1.3.0 // indirect
@@ -106,8 +107,8 @@ require (
 	github.com/jackc/puddle v1.3.0 // indirect
 	github.com/jackpal/go-nat-pmp v1.0.2 // indirect
 	github.com/kilic/bls12-381 v0.1.0 // indirect
-	github.com/klauspost/cpuid/v2 v2.2.8 // indirect
-	github.com/mattn/go-colorable v0.1.13 // indirect
+	github.com/klauspost/cpuid/v2 v2.2.9 // indirect
+	github.com/mattn/go-colorable v0.1.14 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/mfridman/interpolate v0.0.2 // indirect
 	github.com/minio/sha256-simd v1.0.1 // indirect
@@ -140,7 +141,7 @@ require (
 	golang.org/x/net v0.33.0 // indirect
 	golang.org/x/sync v0.10.0 // indirect
 	golang.org/x/sys v0.29.0 // indirect
-	golang.org/x/xerrors v0.0.0-20231012003039-104605ab7028 // indirect
+	golang.org/x/xerrors v0.0.0-20240903120638-7835f813f4da // indirect
 	google.golang.org/protobuf v1.35.1 // indirect
 	gopkg.in/Knetic/govaluate.v3 v3.0.0
 	gopkg.in/cenkalti/backoff.v1 v1.1.0 // indirect
@@ -152,6 +153,6 @@ require (
 	rsc.io/tmplfunc v0.0.3 // indirect
 )
 
-replace github.com/attestantio/go-eth2-client => github.com/attestantio/go-eth2-client v0.0.0-20250106164842-07b6ce39bb43
+replace github.com/attestantio/go-eth2-client => github.com/pk910/go-eth2-client v0.0.0-20250205121015-66eea505b4b7
 
 replace github.com/ethereum/go-ethereum => github.com/s1na/go-ethereum v0.0.0-20250103133732-7e1b0ba7e83f

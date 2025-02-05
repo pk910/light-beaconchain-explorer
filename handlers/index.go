@@ -216,6 +216,14 @@ func buildIndexPageData() (*models.IndexPageData, time.Duration) {
 			Active:  uint64(currentEpoch) >= *specs.Eip7594ForkEpoch,
 		})
 	}
+	if specs.Eip7732ForkEpoch != nil && *specs.Eip7732ForkEpoch < uint64(18446744073709551615) {
+		pageData.NetworkForks = append(pageData.NetworkForks, &models.IndexPageDataForks{
+			Name:    "eip7732",
+			Epoch:   *specs.Eip7732ForkEpoch,
+			Version: specs.Eip7732ForkVersion[:],
+			Active:  uint64(currentEpoch) >= *specs.Eip7732ForkEpoch,
+		})
+	}
 
 	// load recent epochs
 	buildIndexPageRecentEpochsData(pageData, currentEpoch, finalizedEpoch, justifiedEpoch, recentEpochCount)
