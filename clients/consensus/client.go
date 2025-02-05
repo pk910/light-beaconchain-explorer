@@ -22,36 +22,37 @@ type ClientConfig struct {
 }
 
 type Client struct {
-	pool                    *Pool
-	clientIdx               uint16
-	endpointConfig          *ClientConfig
-	clientCtx               context.Context
-	clientCtxCancel         context.CancelFunc
-	rpcClient               *rpc.BeaconClient
-	logger                  *logrus.Entry
-	isOnline                bool
-	isSyncing               bool
-	isOptimistic            bool
-	versionStr              string
-	nodeIdentity            *rpc.NodeIdentity
-	clientType              ClientType
-	lastEvent               time.Time
-	retryCounter            uint64
-	lastError               error
-	headMutex               sync.RWMutex
-	headRoot                phase0.Root
-	headSlot                phase0.Slot
-	justifiedRoot           phase0.Root
-	justifiedEpoch          phase0.Epoch
-	finalizedRoot           phase0.Root
-	finalizedEpoch          phase0.Epoch
-	lastFinalityUpdateEpoch phase0.Epoch
-	lastPeerUpdateEpoch     phase0.Epoch
-	lastSyncUpdateEpoch     phase0.Epoch
-	peers                   []*v1.Peer
-	blockDispatcher         Dispatcher[*v1.BlockEvent]
-	headDispatcher          Dispatcher[*v1.HeadEvent]
-	checkpointDispatcher    Dispatcher[*v1.Finality]
+	pool                       *Pool
+	clientIdx                  uint16
+	endpointConfig             *ClientConfig
+	clientCtx                  context.Context
+	clientCtxCancel            context.CancelFunc
+	rpcClient                  *rpc.BeaconClient
+	logger                     *logrus.Entry
+	isOnline                   bool
+	isSyncing                  bool
+	isOptimistic               bool
+	versionStr                 string
+	nodeIdentity               *rpc.NodeIdentity
+	clientType                 ClientType
+	lastEvent                  time.Time
+	retryCounter               uint64
+	lastError                  error
+	headMutex                  sync.RWMutex
+	headRoot                   phase0.Root
+	headSlot                   phase0.Slot
+	justifiedRoot              phase0.Root
+	justifiedEpoch             phase0.Epoch
+	finalizedRoot              phase0.Root
+	finalizedEpoch             phase0.Epoch
+	lastFinalityUpdateEpoch    phase0.Epoch
+	lastPeerUpdateEpoch        phase0.Epoch
+	lastSyncUpdateEpoch        phase0.Epoch
+	peers                      []*v1.Peer
+	blockDispatcher            Dispatcher[*v1.BlockEvent]
+	headDispatcher             Dispatcher[*v1.HeadEvent]
+	checkpointDispatcher       Dispatcher[*v1.Finality]
+	executionPayloadDispatcher Dispatcher[*v1.ExecutionPayloadEvent]
 }
 
 func (pool *Pool) newPoolClient(clientIdx uint16, endpoint *ClientConfig) (*Client, error) {
@@ -94,6 +95,10 @@ func (client *Client) SubscribeHeadEvent(capacity int, blocking bool) *Subscript
 
 func (client *Client) SubscribeFinalizedEvent(capacity int) *Subscription[*v1.Finality] {
 	return client.checkpointDispatcher.Subscribe(capacity, false)
+}
+
+func (client *Client) SubscribeExecutionPayloadEvent(capacity int, blocking bool) *Subscription[*v1.ExecutionPayloadEvent] {
+	return client.executionPayloadDispatcher.Subscribe(capacity, blocking)
 }
 
 func (client *Client) GetPool() *Pool {

@@ -133,7 +133,11 @@ func (client *Client) runClientLogic() error {
 	}
 
 	// start event stream
-	blockStream := client.rpcClient.NewBlockStream(client.clientCtx, client.logger, rpc.StreamBlockEvent|rpc.StreamHeadEvent|rpc.StreamFinalizedEvent)
+	blockStream := client.rpcClient.NewBlockStream(
+		client.clientCtx,
+		client.logger,
+		rpc.StreamBlockEvent|rpc.StreamHeadEvent|rpc.StreamFinalizedEvent|rpc.StreamExecutionPayloadEvent,
+	)
 	defer blockStream.Close()
 
 	// process events
@@ -170,6 +174,12 @@ func (client *Client) runClientLogic() error {
 				err := client.processFinalizedEvent(evt.Data.(*v1.FinalizedCheckpointEvent))
 				if err != nil {
 					client.logger.Warnf("failed processing finalized event: %v", err)
+				}
+
+			case rpc.StreamExecutionPayloadEvent:
+				err := client.processExecutionPayloadEvent(evt.Data.(*v1.ExecutionPayloadEvent))
+				if err != nil {
+					client.logger.Warnf("failed processing execution payload event: %v", err)
 				}
 			}
 
@@ -389,6 +399,12 @@ func (client *Client) pollClientHead() error {
 	if err != nil {
 		return fmt.Errorf("could not get finality checkpoint: %v", err)
 	}
+
+	return nil
+}
+
+func (client *Client) processExecutionPayloadEvent(evt *v1.ExecutionPayloadEvent) error {
+	client.executionPayloadDispatcher.Fire(evt)
 
 	return nil
 }

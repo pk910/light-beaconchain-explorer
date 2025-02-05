@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/attestantio/go-eth2-client/spec"
+	"github.com/attestantio/go-eth2-client/spec/eip7732"
 	"github.com/attestantio/go-eth2-client/spec/phase0"
 	"github.com/ethpandaops/dora/db"
 	"github.com/ethpandaops/dora/dbtypes"
@@ -16,26 +17,30 @@ import (
 
 // Block represents a beacon block.
 type Block struct {
-	Root              phase0.Root
-	Slot              phase0.Slot
-	dynSsz            *dynssz.DynSsz
-	parentRoot        *phase0.Root
-	dependentRoot     *phase0.Root
-	forkId            ForkKey
-	forkChecked       bool
-	headerMutex       sync.Mutex
-	headerChan        chan bool
-	header            *phase0.SignedBeaconBlockHeader
-	blockMutex        sync.Mutex
-	blockChan         chan bool
-	block             *spec.VersionedSignedBeaconBlock
-	blockIndex        *BlockBodyIndex
-	isInFinalizedDb   bool // block is in finalized table (slots)
-	isInUnfinalizedDb bool // block is in unfinalized table (unfinalized_blocks)
-	processingStatus  dbtypes.UnfinalizedBlockStatus
-	seenMutex         sync.RWMutex
-	seenMap           map[uint16]*Client
-	processedActivity uint8
+	Root                  phase0.Root
+	Slot                  phase0.Slot
+	dynSsz                *dynssz.DynSsz
+	parentRoot            *phase0.Root
+	dependentRoot         *phase0.Root
+	forkId                ForkKey
+	forkChecked           bool
+	headerMutex           sync.Mutex
+	headerChan            chan bool
+	header                *phase0.SignedBeaconBlockHeader
+	blockMutex            sync.Mutex
+	blockChan             chan bool
+	block                 *spec.VersionedSignedBeaconBlock
+	executionPayloadMutex sync.Mutex
+	executionPayloadChan  chan bool
+	executionPayload      *eip7732.SignedExecutionPayloadEnvelope
+	blockIndex            *BlockBodyIndex
+	isInFinalizedDb       bool // block is in finalized table (slots)
+	isInUnfinalizedDb     bool // block is in unfinalized table (unfinalized_blocks)
+	hasExecutionPayload   bool // block has an execution payload (either in cache or db)
+	processingStatus      dbtypes.UnfinalizedBlockStatus
+	seenMutex             sync.RWMutex
+	seenMap               map[uint16]*Client
+	processedActivity     uint8
 }
 
 // BlockBodyIndex holds important block propoerties that are used as index for cache lookups.
@@ -50,12 +55,13 @@ type BlockBodyIndex struct {
 // newBlock creates a new Block instance.
 func newBlock(dynSsz *dynssz.DynSsz, root phase0.Root, slot phase0.Slot) *Block {
 	return &Block{
-		Root:       root,
-		Slot:       slot,
-		dynSsz:     dynSsz,
-		seenMap:    make(map[uint16]*Client),
-		headerChan: make(chan bool),
-		blockChan:  make(chan bool),
+		Root:                 root,
+		Slot:                 slot,
+		dynSsz:               dynSsz,
+		seenMap:              make(map[uint16]*Client),
+		headerChan:           make(chan bool),
+		blockChan:            make(chan bool),
+		executionPayloadChan: make(chan bool),
 	}
 }
 
@@ -140,6 +146,42 @@ func (block *Block) AwaitBlock(ctx context.Context, timeout time.Duration) *spec
 	}
 
 	return block.block
+}
+
+// GetExecutionPayload returns the execution payload of this block.
+func (block *Block) GetExecutionPayload() *eip7732.SignedExecutionPayloadEnvelope {
+	if block.executionPayload != nil {
+		return block.executionPayload
+	}
+
+	if block.hasExecutionPayload && block.isInUnfinalizedDb {
+		/* TODO: add execution payload to unfinalized blocks table
+		dbBlock := db.GetUnfinalizedBlock(block.Root[:])
+		if dbBlock != nil {
+			blockBody, err := unmarshalVersionedSignedBeaconBlockSSZ(block.dynSsz, dbBlock.BlockVer, dbBlock.BlockSSZ)
+			if err == nil {
+				return blockBody
+			}
+		}
+		*/
+	}
+
+	return nil
+}
+
+// AwaitExecutionPayload waits for the execution payload of this block to be available.
+func (block *Block) AwaitExecutionPayload(ctx context.Context, timeout time.Duration) *eip7732.SignedExecutionPayloadEnvelope {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
+	select {
+	case <-block.executionPayloadChan:
+	case <-time.After(timeout):
+	case <-ctx.Done():
+	}
+
+	return block.executionPayload
 }
 
 // GetParentRoot returns the parent root of this block.
@@ -229,6 +271,52 @@ func (block *Block) EnsureBlock(loadBlock func() (*spec.VersionedSignedBeaconBlo
 	if block.blockChan != nil {
 		close(block.blockChan)
 		block.blockChan = nil
+	}
+
+	return true, nil
+}
+
+// SetExecutionPayload sets the execution payload of this block.
+func (block *Block) SetExecutionPayload(payload *eip7732.SignedExecutionPayloadEnvelope) {
+	block.executionPayload = payload
+
+	if block.executionPayloadChan != nil {
+		close(block.executionPayloadChan)
+		block.executionPayloadChan = nil
+	}
+}
+
+// EnsureExecutionPayload ensures that the execution payload of this block is available.
+func (block *Block) EnsureExecutionPayload(loadExecutionPayload func() (*eip7732.SignedExecutionPayloadEnvelope, error)) (bool, error) {
+	if block.executionPayload != nil {
+		return false, nil
+	}
+
+	if block.isInUnfinalizedDb || block.isInFinalizedDb {
+		return false, nil
+	}
+
+	block.executionPayloadMutex.Lock()
+	defer block.executionPayloadMutex.Unlock()
+
+	if block.executionPayload != nil {
+		return false, nil
+	}
+
+	payload, err := loadExecutionPayload()
+	if err != nil {
+		return false, err
+	}
+
+	if payload == nil {
+		return false, nil
+	}
+
+	block.executionPayload = payload
+	block.hasExecutionPayload = true
+	if block.executionPayloadChan != nil {
+		close(block.executionPayloadChan)
+		block.executionPayloadChan = nil
 	}
 
 	return true, nil

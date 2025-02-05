@@ -10,6 +10,7 @@ import (
 
 	v1 "github.com/attestantio/go-eth2-client/api/v1"
 	"github.com/attestantio/go-eth2-client/spec"
+	"github.com/attestantio/go-eth2-client/spec/eip7732"
 	"github.com/attestantio/go-eth2-client/spec/phase0"
 	"github.com/ethpandaops/dora/clients/consensus"
 	"github.com/ethpandaops/dora/db"
@@ -30,8 +31,9 @@ type Client struct {
 	archive        bool
 	skipValidators bool
 
-	blockSubscription *consensus.Subscription[*v1.BlockEvent]
-	headSubscription  *consensus.Subscription[*v1.HeadEvent]
+	blockSubscription            *consensus.Subscription[*v1.BlockEvent]
+	headSubscription             *consensus.Subscription[*v1.HeadEvent]
+	executionPayloadSubscription *consensus.Subscription[*v1.ExecutionPayloadEvent]
 
 	headRoot phase0.Root
 }
@@ -79,6 +81,7 @@ func (c *Client) startIndexing() {
 	// blocking block subscription with a buffer to ensure no blocks are missed
 	c.blockSubscription = c.client.SubscribeBlockEvent(100, true)
 	c.headSubscription = c.client.SubscribeHeadEvent(100, true)
+	c.executionPayloadSubscription = c.client.SubscribeExecutionPayloadEvent(100, true)
 
 	go c.startClientLoop()
 }
@@ -176,6 +179,11 @@ func (c *Client) runClientLoop() error {
 			err := c.processHeadEvent(headEvent)
 			if err != nil {
 				c.logger.Errorf("failed processing head %v (%v): %v", headEvent.Slot, headEvent.Block.String(), err)
+			}
+		case executionPayloadEvent := <-c.executionPayloadSubscription.Channel():
+			err := c.processExecutionPayloadEvent(executionPayloadEvent)
+			if err != nil {
+				c.logger.Errorf("failed processing execution payload %v (%v): %v", executionPayloadEvent.Slot, executionPayloadEvent.BlockRoot.String(), err)
 			}
 		}
 	}
@@ -512,4 +520,45 @@ func (c *Client) backfillParentBlocks(headBlock *Block) error {
 		}
 	}
 	return nil
+}
+
+// processExecutionPayloadEvent processes an execution payload event from the event stream.
+func (c *Client) processExecutionPayloadEvent(executionPayloadEvent *v1.ExecutionPayloadEvent) error {
+	if c.client.GetStatus() != consensus.ClientStatusOnline && c.client.GetStatus() != consensus.ClientStatusOptimistic {
+		// client is not ready, skip
+		return nil
+	}
+
+	chainState := c.client.GetPool().GetChainState()
+	finalizedSlot := chainState.GetFinalizedSlot()
+
+	var block *Block
+
+	if executionPayloadEvent.Slot < finalizedSlot {
+		// block is in finalized epoch
+		// known block or a new orphaned block
+
+		// don't add to cache, process this block right after loading the details
+		block = newBlock(c.indexer.dynSsz, executionPayloadEvent.BlockRoot, executionPayloadEvent.Slot)
+
+		dbBlockHead := db.GetBlockHeadByRoot(executionPayloadEvent.BlockRoot[:])
+		if dbBlockHead != nil {
+			block.isInFinalizedDb = true
+			block.parentRoot = (*phase0.Root)(dbBlockHead.ParentRoot)
+		}
+
+	} else {
+		block = c.indexer.blockCache.getBlockByRoot(executionPayloadEvent.BlockRoot)
+	}
+
+	if block == nil {
+		c.logger.Warnf("execution payload event for unknown block %v:%v [0x%x]", chainState.EpochOfSlot(executionPayloadEvent.Slot), executionPayloadEvent.Slot, executionPayloadEvent.BlockRoot)
+		return nil
+	}
+
+	_, err := block.EnsureExecutionPayload(func() (*eip7732.SignedExecutionPayloadEnvelope, error) {
+		return LoadExecutionPayload(c.getContext(), c, executionPayloadEvent.BlockRoot)
+	})
+
+	return err
 }

@@ -19,6 +19,7 @@ import (
 	"github.com/attestantio/go-eth2-client/spec"
 	"github.com/attestantio/go-eth2-client/spec/capella"
 	"github.com/attestantio/go-eth2-client/spec/deneb"
+	"github.com/attestantio/go-eth2-client/spec/eip7732"
 	"github.com/attestantio/go-eth2-client/spec/phase0"
 	"github.com/rs/zerolog"
 	"github.com/sirupsen/logrus"
@@ -400,6 +401,22 @@ func (bc *BeaconClient) GetBlockBodyByBlockroot(ctx context.Context, blockroot p
 			return nil, nil
 		}
 
+		return nil, err
+	}
+
+	return result.Data, nil
+}
+
+func (bc *BeaconClient) GetExecutionPayloadByBlockroot(ctx context.Context, blockroot phase0.Root) (*eip7732.SignedExecutionPayloadEnvelope, error) {
+	provider, isProvider := bc.clientSvc.(eth2client.ExecutionPayloadProvider)
+	if !isProvider {
+		return nil, fmt.Errorf("get execution payload not supported")
+	}
+
+	result, err := provider.SignedExecutionPayloadEnvelope(ctx, &api.SignedExecutionPayloadEnvelopeOpts{
+		Block: fmt.Sprintf("0x%x", blockroot),
+	})
+	if err != nil {
 		return nil, err
 	}
 
